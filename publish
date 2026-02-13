@@ -1,0 +1,19 @@
+#!/bin/bash
+
+if sbt compile; then
+  # Сборка докер образа в локальный докер
+  sbt docker:publishLocal
+  # Ставим метку на собранный образ для отправки в репозиторий altyn-i
+  docker tag altynml/altyn_bi_msv005 image.altyn-i.kz/big-data/big-data/altyn_bi_msv005:latest
+  # Отправляем в репозиторий altyn-i
+  docker login image.altyn-i.kz
+  docker push image.altyn-i.kz/big-data/big-data/altyn_bi_msv005:latest
+  docker logout
+  # Очищаем старые образы без ссылок чтоб место на диске не кончалось
+  # Образ занимает около 400Мб при каждой сборке это много
+  docker rmi $(docker images image.altyn-i.kz/big-data/big-data/altyn_bi_msv005 --filter "dangling=true" -q) >/dev/null 2>&1
+  docker rmi $(docker images altynml/altyn_bi_msv005 --filter "dangling=true" -q) >/dev/null 2>&1
+else
+  echo "Failed to build project. Publish omitted" >&2
+  exit 1
+fi

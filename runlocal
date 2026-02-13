@@ -1,0 +1,14 @@
+#!/bin/bash
+
+if sbt compile; then
+  docker-compose down
+  sbt docker:publishLocal
+  docker tag altynml/altyn_bi_msv005:latest image.altyn-i.kz/big-data/big-data/altyn_bi_msv005:latest
+  docker login git.altyn-i.kz
+  docker rmi $(docker images image.altyn-i.kz/big-data/big-data/altyn_bi_msv005 --filter "dangling=true" -q) -f >/dev/null 2>&1
+  docker rmi $(docker images altynml/altyn_bi_msv005 --filter "dangling=true" -q) >/dev/null 2>&1
+  docker-compose up
+else
+  echo "Failed to build project. Publish omitted" >&2
+  exit 1
+fi

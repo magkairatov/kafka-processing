@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!-- Stop output INFO at start -->
+    <statusListener class="ch.qos.logback.core.status.NopStatusListener" />
+
+    <!--
+    Можно использовать консоль для отладки
+    Но только во время локальной разработки
+    -->
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <!-- <pattern>[%date{ISO8601}] [%level] [%logger] %msg %n</pattern> -->
+            <pattern>%msg</pattern>
+        </encoder>
+    </appender>
+
+    <!--
+    Если данных много можно сохранять в файл но опять же только во время разработки
+    При запуске локальной отладки фал будет сохраняться на диск
+    В режиме кластер файл будет сохраняться внутри каждого докер контейнера т.е. в оперативной памяти
+    <file>C:/Users/44001505/Desktop/Отчеты/dsbd/app.log</file>
+    <file>/home/demiourgos728/app.log</file>
+    -->
+    <appender name="FILE" class="ch.qos.logback.core.FileAppender">
+        <file>./logs/application.log</file>
+        <immediateFlush>false</immediateFlush>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>app_%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>7</maxHistory>
+            <totalSizeCap>5MB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>[%date{ISO8601}] [%level] [%logger] - %msg {%mdc}%n</pattern>
+        </encoder>
+    </appender>
+
+    <!--
+    В продуктиве если нужны логи для мониторинга раоты системы их следует отправлять в Кафку
+    -->
+    <appender name="kafkaAppender" class="com.github.danielwegener.logback.kafka.KafkaAppender">
+        <encoder>
+            <pattern>[%date{ISO8601}@%logger{36}] %msg</pattern>
+        </encoder>
+        <topic>project_bi_023_logs</topic>
+        <keyingStrategy class="com.github.danielwegener.logback.kafka.keying.NoKeyKeyingStrategy" />
+        <deliveryStrategy class="com.github.danielwegener.logback.kafka.delivery.AsynchronousDeliveryStrategy" />
+        <appendTimestamp>true</appendTimestamp>
+        <producerConfig>bootstrap.servers=broker1:9092,broker2:9092,broker3:9092</producerConfig>
+    </appender>
+
+    <appender name="ASYNC" class="ch.qos.logback.classic.AsyncAppender">
+        <queueSize>8192</queueSize>
+        <neverBlock>true</neverBlock>
+        <appender-ref ref="kafkaAppender" />
+    </appender>
+
+    <!-- Для всех кто свистит устанавливаем уровень -->
+    <logger name="akka" level="ERROR" />
+
+    <logger name="akka.event.slf4j.Slf4jLogger" level="WARN" />
+    <logger name="com.lightbend.lagom" level="ERROR" />
+    <logger name="org.apache.kafka" level="ERROR" />
+    <logger name="io.netty" level="ERROR" />
+
+
+    <!-- Это всё наше -->
+    <logger name="app" level="DEBUG" />
+
+    <root level="DEBUG">
+        <!--<appender-ref ref="STDOUT"/>-->
+        <appender-ref ref="ASYNC"/>
+    </root>
+</configuration>
